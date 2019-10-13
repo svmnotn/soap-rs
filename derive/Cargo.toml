@@ -1,0 +1,15 @@
+[package]
+name = "soap-rs-derive"
+version = "0.1.0"
+authors = ["Victor M. Suarez <svmnotn@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/svmnotn/soap-rs"
+license = "Apache-2.0 OR MIT"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = {version = "1.0.5", features = ["extra-traits"] }
+quote = "1.0.2"
+proc-macro2 = "1.0.5"

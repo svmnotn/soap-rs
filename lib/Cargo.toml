@@ -1,0 +1,16 @@
+[package]
+name = "soap-rs"
+version = "0.1.0"
+authors = ["Victor M. Suarez <svmnotn@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/svmnotn/soap-rs"
+license = "Apache-2.0 OR MIT"
+
+[features]
+default = ["derive"]
+derive = ["soap-rs-derive"]
+
+[dependencies]
+reqwest = "0.9.22"
+minidom = "0.11.1"
+soap-rs-derive = { path = "../derive", optional = true }
