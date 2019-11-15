@@ -4,6 +4,12 @@ pub trait DisplayAction {
     fn fmt(&self, fmt: &mut String, action: &str) -> Result<(), FmtError>;
 }
 
+impl DisplayAction for () {
+    fn fmt(&self, _: &mut String, _: &str) -> Result<(), FmtError> {
+        Ok(())
+    }
+}
+
 impl<T: DisplayAction> DisplayAction for Option<T> {
     fn fmt(&self, fmt: &mut String, action: &str) -> Result<(), FmtError> {
         if let Some(ref v) = self {
