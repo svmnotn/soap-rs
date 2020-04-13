@@ -44,7 +44,7 @@ impl<H: DisplayAction> Envelope<H> {
     }
 
     fn send<D: DisplayAction>(&self, action: &str, body: D) -> Result<String, Error> {
-        use reqwest::{header::CONTENT_TYPE, Client};
+        use reqwest::{blocking::Client, header::CONTENT_TYPE};
         // create our body
         let mut fmt = String::new();
         self.fmt(&mut fmt, action, body)?;
@@ -58,7 +58,7 @@ impl<H: DisplayAction> Envelope<H> {
             .body(fmt);
         #[cfg(debug_assertions)]
         println!("REQUEST:\n{:?}\n", req);
-        let mut res = req.send()?;
+        let res = req.send()?;
         // retrieve the output
         Ok(res.text()?)
     }
