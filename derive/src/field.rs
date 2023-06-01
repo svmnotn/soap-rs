@@ -6,27 +6,22 @@ pub struct Field {
     pub groups: Vec<Group>,
     pub rename: Option<syn::LitStr>,
     pub ident: syn::Ident,
-    pub ty: syn::Type,
-}
-
-impl Field {
-    pub fn is_option(&self) -> bool {
-        match self.ty {
-            syn::Type::Path(ref t) => {
-                if let Some(ty) = t.path.segments.first() {
-                    ty.ident == "Option"
-                } else {
-                    false
-                }
-            }
-            _ => false,
-        }
-    }
+    pub is_option: bool,
 }
 
 impl From<&syn::Field> for Field {
     fn from(inp: &syn::Field) -> Self {
-        let attr: Vec<Attr> = inp.attrs.iter().map(From::from).collect();
+        let attr: Vec<Attr> = inp
+            .attrs
+            .iter()
+            .filter_map(|a| {
+                if a.path().is_ident("display") {
+                    Some(a.into())
+                } else {
+                    None
+                }
+            })
+            .collect();
         Self {
             extras: attr
                 .iter()
@@ -40,7 +35,15 @@ impl From<&syn::Field> for Field {
                 .collect(),
             rename: attr.iter().find(|a| a.is_rename()).map(|a| a.as_rename()),
             ident: inp.ident.as_ref().unwrap().clone(),
-            ty: inp.ty.clone(),
+            is_option: if let syn::Type::Path(ref p) = inp.ty {
+                p.path
+                    .segments
+                    .first()
+                    .map(|t| t.ident == "Option")
+                    .unwrap_or_default()
+            } else {
+                false
+            },
         }
     }
 }

@@ -43,8 +43,8 @@ impl<H: DisplayAction> Envelope<H> {
         write!(fmt, "</{act}></soap:Body></soap:Envelope>", act = action)
     }
 
-    fn send<D: DisplayAction>(&self, action: &str, body: D) -> Result<String, Error> {
-        use reqwest::{blocking::Client, header::CONTENT_TYPE};
+    async fn send<D: DisplayAction>(&self, action: &str, body: D) -> Result<String, Error> {
+        use reqwest::{header::CONTENT_TYPE, Client};
         // create our body
         let mut fmt = String::new();
         self.fmt(&mut fmt, action, body)?;
@@ -58,18 +58,18 @@ impl<H: DisplayAction> Envelope<H> {
             .body(fmt);
         #[cfg(debug_assertions)]
         println!("REQUEST:\n{:?}\n", req);
-        let res = req.send()?;
+        let res = req.send().await?;
         // retrieve the output
-        Ok(res.text()?)
+        Ok(res.text().await?)
     }
 
-    pub fn response<D: DisplayAction>(
+    pub async fn response<D: DisplayAction>(
         &self,
         action: &str,
         body: D,
     ) -> Result<(Element, String), Error> {
         // parse the recived response to XML
-        let text = self.send(action, body)?;
+        let text = self.send(action, body).await?;
         #[cfg(debug_assertions)]
         println!("RESPONSE: {}", text);
         Ok((text.parse()?, self.action_url.clone()))

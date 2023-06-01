@@ -1,10 +1,8 @@
-#![allow(dead_code, unused_imports, clippy::bool_comparison)]
-extern crate proc_macro;
-
-use proc_macro::TokenStream;
+use proc_macro2::TokenStream;
 use quote::quote;
+use syn::{parse_macro_input, DeriveInput};
+
 use std::collections::{HashMap, HashSet};
-use syn;
 
 mod attr;
 use attr::{Attr, Group};
@@ -14,17 +12,19 @@ mod data;
 use data::Data;
 
 #[proc_macro_derive(DisplayAction, attributes(display))]
-pub fn display_action_derive(input: TokenStream) -> TokenStream {
+pub fn display_action_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
-    let ast = syn::parse(input).unwrap();
+    let input = parse_macro_input!(input as DeriveInput);
 
     // Build the trait implementation
-    impl_display_action(&ast)
+    impl_display_action(input).into()
 }
 
-fn impl_display_action(ast: &syn::DeriveInput) -> TokenStream {
-    let data = Data::from(ast);
+fn impl_display_action(input: syn::DeriveInput) -> TokenStream {
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let data = Data::from(&input);
     let top_group = data
         .attrs
         .iter()
@@ -45,7 +45,7 @@ fn impl_display_action(ast: &syn::DeriveInput) -> TokenStream {
     } else {
         quote! {}
     };
-    let mut body = Vec::new();
+    let mut body: Vec<TokenStream> = Vec::new();
 
     let mut grouped = HashMap::new();
     for field in &data.fields {
@@ -62,23 +62,23 @@ fn impl_display_action(ast: &syn::DeriveInput) -> TokenStream {
     write_top_grouped_fields(&mut body, grouped);
 
     let name = &data.ident;
-    let gen = quote! {
-        impl soap_rs::DisplayAction for #name {
-            fn fmt(&self, fmt: &mut String, _: &str) -> std::result::Result<(), std::fmt::Error> {
-                use std::fmt::Write;
+
+    quote! {
+        impl #impl_generics soap_rs::DisplayAction for #name #ty_generics #where_clause {
+            fn fmt(&self, fmt: &mut String, _: &str) -> ::std::result::Result<(), ::std::fmt::Error> {
+                use ::std::fmt::Write;
 
                 #head
                 #(#body)*
                 #end
 
-                std::result::Result::Ok(())
+                ::std::result::Result::Ok(())
             }
         }
-    };
-    gen.into()
+    }
 }
 
-fn write_field(body: &mut Vec<proc_macro2::TokenStream>, field: &Field) {
+fn write_field(body: &mut Vec<TokenStream>, field: &Field) {
     for extra in &field.extras {
         body.push(quote! {
             write!(fmt, #extra)?;
@@ -97,10 +97,10 @@ fn write_field(body: &mut Vec<proc_macro2::TokenStream>, field: &Field) {
     });
 }
 
-fn gen_fields(grouped: &HashSet<&Field>) -> Vec<proc_macro2::TokenStream> {
+fn gen_fields(grouped: &HashSet<&Field>) -> Vec<TokenStream> {
     let mut body = Vec::new();
     for field in grouped {
-        if field.is_option() {
+        if field.is_option {
             let id = &field.ident;
             body.push(quote! {
                 self.#id.is_some() ||
@@ -120,7 +120,7 @@ fn gen_fields(grouped: &HashSet<&Field>) -> Vec<proc_macro2::TokenStream> {
 }
 
 fn write_grouped_fields(
-    body: &mut Vec<proc_macro2::TokenStream>,
+    body: &mut Vec<TokenStream>,
     group: &Group,
     grouped: &HashMap<&Group, HashSet<&Field>>,
 ) {
@@ -140,7 +140,7 @@ fn write_grouped_fields(
 }
 
 fn write_top_grouped_fields(
-    body: &mut Vec<proc_macro2::TokenStream>,
+    body: &mut Vec<TokenStream>,
     grouped: HashMap<&Group, HashSet<&Field>>,
 ) {
     for (superset, (subsets, fields)) in calculate_supersets(&grouped) {
@@ -178,7 +178,7 @@ fn calculate_supersets<'a>(
         let mut subs = HashSet::new();
         let mut sub_fields = HashSet::new();
         for (k1, v1) in grouped {
-            if k != k1 && v.intersection(v1).nth(0).is_some() {
+            if k != k1 && v.intersection(v1).next().is_some() {
                 if v.is_superset(v1) {
                     subs.insert(*k1);
                     sub_fields = sub_fields.union(v1).map(|f| *f).collect();

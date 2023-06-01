@@ -10,7 +10,17 @@ pub struct Data {
 impl From<&syn::DeriveInput> for Data {
     fn from(inp: &syn::DeriveInput) -> Self {
         Self {
-            attrs: inp.attrs.iter().map(From::from).collect(),
+            attrs: inp
+                .attrs
+                .iter()
+                .filter_map(|a| {
+                    if a.path().is_ident("display") {
+                        Some(a.into())
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
             ident: inp.ident.clone(),
             fields: match inp.data {
                 syn::Data::Struct(ref s) => s.fields.iter().map(From::from).collect(),
