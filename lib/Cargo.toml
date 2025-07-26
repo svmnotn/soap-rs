@@ -1,6 +1,6 @@
 [package]
 name = "soap-rs"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Victor M. Suarez <svmnotn@gmail.com>"]
 edition = "2021"
 repository = "https://github.com/svmnotn/soap-rs"
@@ -11,6 +11,6 @@ default = ["derive"]
 derive = ["soap-rs-derive"]
 
 [dependencies]
-reqwest = {version = "0.11", features = ["native-tls", "trust-dns"]}
-minidom = "0.15"
+reqwest = {version = "0.12", features = ["native-tls", "trust-dns"]}
+minidom = "0.16"
 soap-rs-derive = { path = "../derive", optional = true }
